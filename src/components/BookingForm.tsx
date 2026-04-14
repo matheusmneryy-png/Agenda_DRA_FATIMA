@@ -9,9 +9,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { CLINIC_CONFIG, getAvailableTimeSlots, buildWhatsAppMessage } from "@/lib/config";
 import { format, isBefore, startOfDay, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, ArrowRight, Check, Clock, User, Stethoscope, CalendarDays, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, User, Stethoscope, CalendarDays, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 interface BookingFormProps {
   onClose: () => void;
@@ -21,6 +23,7 @@ const steps = ["Paciente", "Consulta", "Horário", "Confirmação"];
 
 const BookingForm = ({ onClose }: BookingFormProps) => {
   const [step, setStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     patientName: "",
     age: "",
@@ -32,7 +35,34 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [bookedSlots] = useState<string[]>([]); // Will be fetched from DB later
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+
+  // Fetch booked slots for the selected date
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!selectedDate) return;
+      
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('time')
+        .eq('date', dateStr)
+        .neq('status', 'canceled');
+
+      if (error) {
+        console.error("Error fetching slots:", error);
+        return;
+      }
+
+      if (data) {
+        // Formato retornado pelo Postgres costuma ser HH:MM:SS, converter para HH:MM
+        const formattedSlots = data.map(slot => slot.time.substring(0, 5));
+        setBookedSlots(formattedSlots);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [selectedDate]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -46,23 +76,69 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
 
   const availableSlots = selectedDate ? getAvailableTimeSlots(selectedDate, bookedSlots) : [];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) return;
 
-    const message = buildWhatsAppMessage({
-      ...formData,
-      date: format(selectedDate, "dd/MM/yyyy"),
-      time: selectedTime,
-    });
+    setIsSubmitting(true);
+    try {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-    const url = `https://wa.me/${CLINIC_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+      // 1. Inserir paciente (ou recuperar se já existir)
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .upsert({
+          full_name: formData.patientName,
+          age: formData.age,
+          guardian_name: formData.guardianName,
+          phone: formData.phone
+        }, { onConflict: 'phone' }) // Idealmente teríamos uma constraint UNIQUE no phone
+        .select()
+        .single();
 
-    toast.success("Agendamento enviado com sucesso!", {
-      description: "Você será redirecionado ao WhatsApp para confirmar.",
-    });
+      if (patientError) throw patientError;
 
-    onClose();
+      // 2. Inserir agendamento
+      const { error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: patientData.id,
+          date: dateStr,
+          time: selectedTime,
+          type: formData.consultationType,
+          insurance_name: formData.consultationType === 'convenio' ? formData.insuranceName : null,
+          insurance_number: formData.consultationType === 'convenio' ? formData.insuranceNumber : null,
+          status: 'pending'
+        });
+
+      if (appointmentError) throw appointmentError;
+
+      // 3. Preparar mensagem WhatsApp
+      const message = buildWhatsAppMessage({
+        ...formData,
+        date: format(selectedDate, "dd/MM/yyyy"),
+        time: selectedTime,
+      });
+
+      const url = `https://wa.me/${CLINIC_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+      
+      toast.success("Agendamento registrado com sucesso!", {
+        description: "Você será redirecionado ao WhatsApp para confirmação final.",
+      });
+
+      // Abrir WhatsApp após pequena demora
+      setTimeout(() => {
+        window.open(url, "_blank");
+        onClose();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error("Erro ao agendar:", error);
+      toast.error("Erro ao realizar agendamento", {
+        description: error.message || "Tente novamente em instantes."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const stepIcons = [User, Stethoscope, CalendarDays, Check];
@@ -308,7 +384,7 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
               <Button
                 variant="hero"
                 onClick={() => setStep((s) => s + 1)}
-                disabled={!canNext}
+                disabled={!canNext || isSubmitting}
                 className="flex-1"
               >
                 Próximo
@@ -318,10 +394,20 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
               <Button
                 variant="hero"
                 onClick={handleSubmit}
+                disabled={isSubmitting}
                 className="flex-1"
               >
-                <Send className="mr-1 h-4 w-4" />
-                Enviar via WhatsApp
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    Agendando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1 h-4 w-4" />
+                    Confirmar Agendamento
+                  </>
+                )}
               </Button>
             )}
           </div>

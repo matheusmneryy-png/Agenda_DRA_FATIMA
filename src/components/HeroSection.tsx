@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import draFatimaAvatar from "@/assets/dra-fatima-avatar.png";
+import heroDoctor from "@/assets/hero-doctor.jpg";
 import { Button } from "@/components/ui/button";
 import { CalendarDays } from "lucide-react";
 
@@ -42,13 +42,23 @@ const HeroSection = ({ onStartBooking }: HeroSectionProps) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <img
-              src={draFatimaAvatar}
-              alt="Dra. Fátima Casal - Cardiopediatra"
-              width={320}
-              height={400}
-              className="mx-auto max-w-[280px] md:max-w-[320px] drop-shadow-lg"
-            />
+            <div className="relative group">
+              {/* Background Glow */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary to-accent opacity-20 blur-2xl group-hover:opacity-30 transition-opacity" />
+              
+              {/* Circular Container for the Image */}
+              <div className="relative h-72 w-72 md:h-80 md:w-80 overflow-hidden rounded-full border-4 border-white shadow-soft bg-white">
+                <img
+                  src={heroDoctor}
+                  alt="Dra. Fátima Casal - Cardiopediatra"
+                  className="h-full w-full object-cover scale-110 translate-y-1 relative z-10"
+                />
+              </div>
+
+              {/* Decorative elements */}
+              <div className="absolute -bottom-2 -right-2 h-12 w-12 rounded-full bg-accent/20 blur-xl" />
+              <div className="absolute -top-4 -left-4 h-16 w-16 rounded-full bg-primary/10 blur-xl" />
+            </div>
           </motion.div>
         </div>
       </div>

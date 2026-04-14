@@ -5,7 +5,13 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-        <img src={logoOficial} alt="Logo Dra. Fátima Casal" width={44} height={44} className="rounded-full object-contain" />
+        <div className="relative h-11 w-11 shrink-0 bg-transparent flex items-center justify-center overflow-hidden">
+          <img 
+            src={logoOficial} 
+            alt="Logo Dra. Fátima Casal" 
+            className="h-full w-full object-contain mix-blend-screen scale-125" 
+          />
+        </div>
         <div>
           <h1 className="text-lg font-bold leading-tight text-foreground">
             {CLINIC_CONFIG.name}

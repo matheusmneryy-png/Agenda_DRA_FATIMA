@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,7 +13,40 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "robots.txt", "icons/*.png"],
+      manifest: {
+        name: "Dra. Fátima Casal – Cardiopediatra",
+        short_name: "Dra. Fátima",
+        description: "Agendamento de consultas de cardiopediatria",
+        theme_color: "#0ea5e9",
+        background_color: "#f7f9fb",
+        display: "standalone",
+        icons: [
+          {
+            src: "/icons/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
