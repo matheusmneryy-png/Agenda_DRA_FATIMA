@@ -80,13 +80,10 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
     if (!selectedDate || !selectedTime) return;
 
     setIsSubmitting(true);
-    console.log("Iniciando processo de agendamento...");
-    
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
       // 1. Verificar se o paciente já existe pelo telefone
-      console.log("Buscando paciente pelo telefone:", formData.phone);
       const { data: existingPatient, error: searchError } = await supabase
         .from('patients')
         .select('id')
@@ -95,16 +92,14 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
 
       if (searchError) {
         console.error("Erro ao buscar paciente:", searchError);
-        throw searchError; // Agora vamos interromper se houver erro de busca
       }
 
       let patientId;
 
       if (existingPatient) {
-        console.log("Paciente encontrado, ID:", existingPatient.id);
         patientId = existingPatient.id;
         // Opcional: Atualizar dados do paciente existente
-        const { error: updateError } = await supabase
+        await supabase
           .from('patients')
           .update({
             full_name: formData.patientName,
@@ -112,13 +107,7 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
             guardian_name: formData.guardianName,
           })
           .eq('id', patientId);
-          
-        if (updateError) {
-          console.error("Erro ao atualizar paciente:", updateError);
-          throw updateError;
-        }
       } else {
-        console.log("Paciente não encontrado. Criando novo...");
         // Criar novo paciente
         const { data: newPatient, error: createError } = await supabase
           .from('patients')
@@ -131,16 +120,11 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
           .select()
           .single();
 
-        if (createError) {
-          console.error("Erro ao criar paciente:", createError);
-          throw createError;
-        }
+        if (createError) throw createError;
         patientId = newPatient.id;
-        console.log("Novo paciente criado, ID:", patientId);
       }
 
       // 2. Inserir agendamento
-      console.log("Inserindo agendamento para o paciente:", patientId);
       const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({
@@ -153,12 +137,7 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
           status: 'pending'
         });
 
-      if (appointmentError) {
-        console.error("Erro ao inserir agendamento:", appointmentError);
-        throw appointmentError;
-      }
-
-      console.log("Agendamento concluído com sucesso no banco!");
+      if (appointmentError) throw appointmentError;
 
       // 3. Preparar mensagem WhatsApp
       const message = buildWhatsAppMessage({
