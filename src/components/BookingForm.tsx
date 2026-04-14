@@ -159,8 +159,20 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
       }, 1500);
 
     } catch (error: any) {
-      console.error("Erro ao agendar:", error);
-      toast.error("Erro ao realizar agendamento", {
+      console.error("DEBUG - Erro detalhado ao agendar:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        url: import.meta.env.VITE_SUPABASE_URL ? "Configurada" : "NÃO CONFIGURADA",
+        key: import.meta.env.VITE_SUPABASE_ANON_KEY ? "Configurada" : "NÃO CONFIGURADA",
+      });
+      
+      let errorMsg = "Erro ao realizar agendamento";
+      if (error.message === "Failed to fetch") {
+        errorMsg = "Erro de conexão: Verifique se as chaves do Supabase na Vercel estão corretas e sem aspas.";
+      }
+
+      toast.error(errorMsg, {
         description: error.message || "Tente novamente em instantes."
       });
     } finally {
