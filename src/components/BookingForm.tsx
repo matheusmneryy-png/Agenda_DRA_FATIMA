@@ -83,25 +83,52 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-      // 1. Inserir paciente (ou recuperar se já existir)
-      const { data: patientData, error: patientError } = await supabase
+      // 1. Verificar se o paciente já existe pelo telefone
+      const { data: existingPatient, error: searchError } = await supabase
         .from('patients')
-        .upsert({
-          full_name: formData.patientName,
-          age: formData.age,
-          guardian_name: formData.guardianName,
-          phone: formData.phone
-        }, { onConflict: 'phone' }) // Idealmente teríamos uma constraint UNIQUE no phone
-        .select()
-        .single();
+        .select('id')
+        .eq('phone', formData.phone)
+        .maybeSingle();
 
-      if (patientError) throw patientError;
+      if (searchError) {
+        console.error("Erro ao buscar paciente:", searchError);
+      }
+
+      let patientId;
+
+      if (existingPatient) {
+        patientId = existingPatient.id;
+        // Opcional: Atualizar dados do paciente existente
+        await supabase
+          .from('patients')
+          .update({
+            full_name: formData.patientName,
+            age: formData.age,
+            guardian_name: formData.guardianName,
+          })
+          .eq('id', patientId);
+      } else {
+        // Criar novo paciente
+        const { data: newPatient, error: createError } = await supabase
+          .from('patients')
+          .insert({
+            full_name: formData.patientName,
+            age: formData.age,
+            guardian_name: formData.guardianName,
+            phone: formData.phone
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        patientId = newPatient.id;
+      }
 
       // 2. Inserir agendamento
       const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({
-          patient_id: patientData.id,
+          patient_id: patientId,
           date: dateStr,
           time: selectedTime,
           type: formData.consultationType,
