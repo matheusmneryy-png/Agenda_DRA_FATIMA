@@ -59,9 +59,18 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
 
       console.log("✅ [FETCH] Dados retornados do Supabase:", data);
       if (data) {
-        // Postgres retorna HH:MM:SS, converter para HH:MM
-        const formattedSlots = data.map((slot) => slot.time.substring(0, 5));
-        console.log("📋 [FETCH] Slots ocupados:", formattedSlots);
+        // Postgres retorna HH:MM:SS, converter para HH:MM de forma robusta
+        const formattedSlots = data.map((slot) => {
+          if (!slot.time) return "";
+          // Remove espaços, divide por ":" para lidar com HH:MM ou HH:MM:SS e garante padding de zeros
+          const parts = slot.time.trim().split(":");
+          if (parts.length >= 2) {
+            return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+          }
+          return slot.time;
+        }).filter(Boolean);
+
+        console.log("📋 [FETCH] Slots ocupados formatados:", formattedSlots);
         setBookedSlots(formattedSlots);
       }
     };
