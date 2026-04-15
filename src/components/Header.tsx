@@ -5,11 +5,11 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-        <div className="relative h-11 w-11 shrink-0 bg-transparent flex items-center justify-center overflow-hidden">
+        <div className="relative h-12 w-12 shrink-0 flex items-center justify-center">
           <img 
             src={logoOficial} 
             alt="Logo Dra. Fátima Casal" 
-            className="h-full w-full object-contain mix-blend-screen scale-125" 
+            className="h-full w-full object-contain" 
           />
         </div>
         <div>
