@@ -73,25 +73,22 @@ const Admin = () => {
       ));
       
       toast.success(`Status atualizado para ${newStatus === 'confirmed' ? 'Confirmado' : 'Cancelado'}`);
-
-      // Se for confirmação, abre o WhatsApp com a mensagem pronta
-      if (newStatus === 'confirmed' && appointment) {
-        const message = buildWhatsAppConfirmationMessage({
-          patientName: appointment.patients.full_name,
-          date: format(new Date(appointment.date), "dd/MM/yyyy"),
-          time: appointment.time.substring(0, 5),
-          consultationType: appointment.type,
-          insuranceName: appointment.insurance_name
-        });
-        
-        const phone = appointment.patients.phone.replace(/\D/g, '');
-        const waUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-        window.open(waUrl, '_blank');
-      }
     } catch (error: any) {
       console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao atualizar status");
     }
+  };
+
+  const getWhatsAppConfirmationUrl = (app: Appointment) => {
+    const message = buildWhatsAppConfirmationMessage({
+      patientName: app.patients.full_name,
+      date: format(new Date(app.date), "dd/MM/yyyy"),
+      time: app.time.substring(0, 5),
+      consultationType: app.type,
+      insuranceName: app.insurance_name
+    });
+    const phone = app.patients.phone.replace(/\D/g, '');
+    return `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
   };
 
   const handleExportPDF = () => {
@@ -221,16 +218,26 @@ const Admin = () => {
                       </div>
 
                       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                        {app.status !== 'confirmed' && (
+                        {app.status === 'pending' ? (
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="bg-primary/5 text-primary hover:bg-primary/10 border-primary/20"
                             onClick={() => updateStatus(app.id, 'confirmed', app)}
                           >
-                            <CheckCircle className="mr-1 h-4 w-4" /> Confirmar
+                            <CheckCircle className="mr-1 h-4 w-4" /> Confirmar Consulta
                           </Button>
-                        )}
+                        ) : app.status === 'confirmed' ? (
+                          <a 
+                            href={getWhatsAppConfirmationUrl(app)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-3 bg-green-500 text-white hover:bg-green-600 shadow-sm gap-1"
+                          >
+                            <Phone className="h-4 w-4" /> Enviar Confirmação (WhatsApp)
+                          </a>
+                        ) : null}
+
                         {app.status !== 'canceled' && (
                           <Button 
                             size="sm" 
@@ -241,13 +248,15 @@ const Admin = () => {
                             <XCircle className="mr-1 h-4 w-4" /> Cancelar
                           </Button>
                         )}
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => window.open(`https://wa.me/${app.patients.phone.replace(/\D/g, '')}`, '_blank')}
+                        
+                        <a 
+                          href={`https://wa.me/55${app.patients.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-9 px-3 hover:bg-accent hover:text-accent-foreground gap-1"
                         >
-                          <Phone className="mr-1 h-4 w-4" /> WhatsApp
-                        </Button>
+                          <Phone className="h-4 w-4" /> WhatsApp
+                        </a>
                       </div>
                     </div>
                   </div>
