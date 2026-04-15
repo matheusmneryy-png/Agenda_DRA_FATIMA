@@ -39,6 +39,30 @@ export function getAvailableTimeSlots(date: Date, bookedSlots: string[]): string
   return slots;
 }
 
+/**
+ * Retorna todos os horários possíveis do dia (ocupados ou não)
+ */
+export function getAllTimeSlots(): string[] {
+  const { start, end, lunchStart, lunchEnd } = CLINIC_CONFIG.workingHours;
+  const duration = CLINIC_CONFIG.appointmentDuration;
+  const slots: string[] = [];
+
+  let current = start;
+  while (current < end) {
+    if (current >= lunchStart && current < lunchEnd) {
+      current = lunchEnd;
+      continue;
+    }
+    const hours = Math.floor(current);
+    const minutes = Math.round((current - hours) * 60);
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    slots.push(timeStr);
+    current += duration / 60;
+  }
+
+  return slots;
+}
+
 export function formatPhoneForWhatsApp(phone: string): string {
   return phone.replace(/\D/g, '');
 }
@@ -68,6 +92,25 @@ export function buildWhatsAppMessage(data: {
   
   msg += `\n📅 *Data:* ${data.date}\n`;
   msg += `⏰ *Horário:* ${data.time}\n`;
+  
+  return msg;
+}
+
+export function buildWhatsAppConfirmationMessage(data: {
+  patientName: string;
+  date: string;
+  time: string;
+  consultationType: string;
+  insuranceName?: string | null;
+}): string {
+  let msg = `✅ *Confirmação de Agendamento - ${CLINIC_CONFIG.name}*\n\n`;
+  msg += `Olá, confirmamos sua consulta para o seu pequeno(a):\n\n`;
+  msg += `👶 *Paciente:* ${data.patientName}\n`;
+  msg += `📅 *Data:* ${data.date}\n`;
+  msg += `⏰ *Horário:* ${data.time}\n`;
+  msg += `💼 *Tipo:* ${data.consultationType === 'particular' ? 'Particular' : `Convênio (${data.insuranceName || ''})`}\n\n`;
+  
+  msg += `Aguardamos vocês! 🏥`;
   
   return msg;
 }

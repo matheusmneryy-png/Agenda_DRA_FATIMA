@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, User, Phone, CheckCircle, XCircle, Clock, RefreshCcw, Filter } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { CLINIC_CONFIG, buildWhatsAppConfirmationMessage, getAllTimeSlots } from "@/lib/config";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +59,7 @@ const Admin = () => {
     fetchAppointments();
   }, [filterDate]);
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: 'confirmed' | 'canceled', appointment?: Appointment) => {
     try {
       const { error } = await supabase
         .from('appointments')
@@ -66,12 +69,69 @@ const Admin = () => {
       if (error) throw error;
       
       setAppointments(prev => prev.map(app => 
-        app.id === id ? { ...app, status: newStatus as any } : app
+        app.id === id ? { ...app, status: newStatus } : app
       ));
       
-      toast.success(`Status atualizado para ${newStatus}`);
+      toast.success(`Status atualizado para ${newStatus === 'confirmed' ? 'Confirmado' : 'Cancelado'}`);
+
+      // Se for confirmação, abre o WhatsApp com a mensagem pronta
+      if (newStatus === 'confirmed' && appointment) {
+        const message = buildWhatsAppConfirmationMessage({
+          patientName: appointment.patients.full_name,
+          date: format(new Date(appointment.date), "dd/MM/yyyy"),
+          time: appointment.time.substring(0, 5),
+          consultationType: appointment.type,
+          insuranceName: appointment.insurance_name
+        });
+        
+        const phone = appointment.patients.phone.replace(/\D/g, '');
+        const waUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+      }
     } catch (error: any) {
+      console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao atualizar status");
+    }
+  };
+
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const allSlots = getAllTimeSlots();
+      const dateFormatted = format(new Date(filterDate + "T12:00:00"), "dd/MM/yyyy");
+
+      // Cabeçalho do PDF
+      doc.setFontSize(18);
+      doc.text(`Diário de Consultas - ${dateFormatted}`, 14, 20);
+      doc.setFontSize(12);
+      doc.text(`${CLINIC_CONFIG.name} - ${CLINIC_CONFIG.specialty}`, 14, 28);
+
+      const tableData = allSlots.map(slot => {
+        const app = appointments.find(a => a.time.substring(0, 5) === slot);
+        if (app && app.status !== 'canceled') {
+          return [
+            slot,
+            "OCUPADO",
+            app.patients.full_name,
+            app.patients.phone,
+            app.type === 'particular' ? 'Particular' : `Convênio (${app.insurance_name || ''})`
+          ];
+        }
+        return [slot, "LIVRE", "-", "-", "-"];
+      });
+
+      autoTable(doc, {
+        startY: 35,
+        head: [['Horário', 'Status', 'Paciente', 'Telefone', 'Tipo']],
+        body: tableData,
+        headStyles: { fillStyle: 'fill', fillColor: [0, 150, 200] },
+      });
+
+      doc.save(`agenda-${filterDate}.pdf`);
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF");
     }
   };
 
@@ -92,15 +152,23 @@ const Admin = () => {
             <p className="text-muted-foreground">Gerencie as consultas do consultório</p>
           </div>
           
-          <div className="flex items-center gap-2 rounded-lg border bg-card p-2 shadow-sm">
-            <Filter className="h-4 w-4 text-muted-foreground ml-2" />
-            <input 
-              type="date" 
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="bg-transparent text-sm focus:outline-none"
-            />
-            <Button size="icon" variant="ghost" onClick={fetchAppointments} className="h-8 w-8">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2 shadow-sm">
+            <div className="flex items-center gap-2 px-2 border-r mr-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <input 
+                type="date" 
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="bg-transparent text-sm focus:outline-none"
+              />
+            </div>
+            
+            <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Exportar Diário (PDF)
+            </Button>
+
+            <Button size="icon" variant="ghost" onClick={fetchAppointments} className="h-8 w-8 ml-auto">
               <RefreshCcw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
           </div>
@@ -158,7 +226,7 @@ const Admin = () => {
                             size="sm" 
                             variant="outline" 
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => updateStatus(app.id, 'confirmed')}
+                            onClick={() => updateStatus(app.id, 'confirmed', app)}
                           >
                             <CheckCircle className="mr-1 h-4 w-4" /> Confirmar
                           </Button>
