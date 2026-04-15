@@ -79,6 +79,19 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
   const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) return;
 
+    // ✅ FIX IPHONE/SAFARI: Criar o link do WhatsApp ANTES do trabalho assíncrono.
+    // O Safari bloqueia window.open() chamado dentro de setTimeout ou após await.
+    // Abrir o link de forma síncrona ao clique contorna essa restrição.
+    const message = buildWhatsAppMessage({
+      ...formData,
+      date: format(selectedDate, "dd/MM/yyyy"),
+      time: selectedTime,
+    });
+    const whatsappUrl = `https://wa.me/${CLINIC_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+    // Abrir o WhatsApp imediatamente (contexto síncrono do clique — funciona no Safari)
+    window.open(whatsappUrl, "_blank");
+
     setIsSubmitting(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -139,22 +152,15 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
 
       if (appointmentError) throw appointmentError;
 
-      // 3. Preparar mensagem WhatsApp
-      const message = buildWhatsAppMessage({
-        ...formData,
-        date: format(selectedDate, "dd/MM/yyyy"),
-        time: selectedTime,
-      });
+      // ✅ FIX HORÁRIO SUMINDO: Atualizar os slots ocupados IMEDIATAMENTE após salvar
+      // Assim o horário recém-agendado some da tela sem precisar fechar e reabrir.
+      setBookedSlots(prev => [...prev, selectedTime]);
 
-      const url = `https://wa.me/${CLINIC_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
-      
       toast.success("Agendamento registrado com sucesso!", {
-        description: "Você será redirecionado ao WhatsApp para confirmação final.",
+        description: "WhatsApp aberto para confirmação final.",
       });
 
-      // Abrir WhatsApp após pequena demora
       setTimeout(() => {
-        window.open(url, "_blank");
         onClose();
       }, 1500);
 
