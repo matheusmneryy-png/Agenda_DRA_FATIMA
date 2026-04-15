@@ -44,6 +44,8 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
       if (!selectedDate) return;
 
       const dateStr = format(selectedDate, "yyyy-MM-dd");
+      console.log("🔍 [FETCH] Buscando slots para data:", dateStr);
+
       const { data, error } = await supabase
         .from("appointments")
         .select("time")
@@ -51,13 +53,15 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
         .neq("status", "canceled");
 
       if (error) {
-        console.error("Error fetching slots:", error);
+        console.error("❌ [FETCH] Erro ao buscar slots:", error);
         return;
       }
 
+      console.log("✅ [FETCH] Dados retornados do Supabase:", data);
       if (data) {
         // Postgres retorna HH:MM:SS, converter para HH:MM
         const formattedSlots = data.map((slot) => slot.time.substring(0, 5));
+        console.log("📋 [FETCH] Slots ocupados:", formattedSlots);
         setBookedSlots(formattedSlots);
       }
     };
@@ -84,6 +88,8 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
+      console.log("📅 [INSERT] Dados do agendamento:", { date: dateStr, time: selectedTime });
+
       // 1. Verificar se o paciente já existe pelo telefone
       const { data: existingPatient, error: searchError } = await supabase
         .from("patients")
@@ -92,8 +98,10 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
         .maybeSingle();
 
       if (searchError) {
-        console.error("Erro ao buscar paciente:", searchError);
+        console.error("❌ [PATIENT] Erro ao buscar paciente:", searchError);
       }
+
+      console.log("👤 [PATIENT] Paciente existente:", existingPatient);
 
       let patientId;
 
@@ -107,6 +115,7 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
             guardian_name: formData.guardianName,
           })
           .eq("id", patientId);
+        console.log("✅ [PATIENT] Paciente atualizado, id:", patientId);
       } else {
         const { data: newPatient, error: createError } = await supabase
           .from("patients")
@@ -119,12 +128,17 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error("❌ [PATIENT] Erro ao criar paciente:", createError);
+          throw createError;
+        }
         patientId = newPatient.id;
+        console.log("✅ [PATIENT] Novo paciente criado, id:", patientId);
       }
 
       // 2. Inserir agendamento
-      const { error: appointmentError } = await supabase
+      console.log("🗓️ [APPOINTMENT] Tentando inserir agendamento...");
+      const { data: insertedAppointment, error: appointmentError } = await supabase
         .from("appointments")
         .insert({
           patient_id: patientId,
@@ -134,9 +148,14 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
           insurance_name: formData.consultationType === "convenio" ? formData.insuranceName : null,
           insurance_number: formData.consultationType === "convenio" ? formData.insuranceNumber : null,
           status: "pending",
-        });
+        })
+        .select();
 
-      if (appointmentError) throw appointmentError;
+      if (appointmentError) {
+        console.error("❌ [APPOINTMENT] Erro ao inserir agendamento:", appointmentError);
+        throw appointmentError;
+      }
+      console.log("✅ [APPOINTMENT] Agendamento inserido com sucesso:", insertedAppointment);
 
       // ✅ Atualizar lista de slots ocupados imediatamente (horário some da tela)
       setBookedSlots((prev) => [...prev, selectedTime]);
