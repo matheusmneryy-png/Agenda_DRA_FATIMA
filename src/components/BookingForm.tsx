@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
-import { CLINIC_CONFIG, getAvailableTimeSlots, buildWhatsAppMessage } from "@/lib/config";
+import { CLINIC_CONFIG, getAvailableTimeSlots, buildWhatsAppMessage, normalizePhone } from "@/lib/config";
 import { format, isBefore, startOfDay, isWeekend } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Check, Clock, User, Stethoscope, CalendarDays, Send, Loader2 } from "lucide-react";
@@ -175,7 +175,7 @@ const BookingForm = ({ onClose }: BookingFormProps) => {
         date: format(selectedDate, "dd/MM/yyyy"),
         time: selectedTime,
       });
-      const url = `https://wa.me/${CLINIC_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+      const url = `https://api.whatsapp.com/send?phone=${normalizePhone(CLINIC_CONFIG.whatsappNumber)}&text=${encodeURIComponent(message)}`;
       setWhatsappUrl(url);
 
       // ✅ Mostrar tela de sucesso com link <a> nativo (única forma confiável no iPhone/Safari)

@@ -67,6 +67,17 @@ export function formatPhoneForWhatsApp(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
+/**
+ * Garante que o número comece com 55 e contenha apenas dígitos
+ */
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (!digits.startsWith('55') && (digits.length === 10 || digits.length === 11)) {
+    return `55${digits}`;
+  }
+  return digits;
+}
+
 export function buildWhatsAppMessage(data: {
   patientName: string;
   age: string;

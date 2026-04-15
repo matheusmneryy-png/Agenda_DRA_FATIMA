@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, User, Phone, CheckCircle, XCircle, Clock, RefreshCcw, Filter } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { CLINIC_CONFIG, buildWhatsAppConfirmationMessage, getAllTimeSlots } from "@/lib/config";
+import { CLINIC_CONFIG, buildWhatsAppConfirmationMessage, getAllTimeSlots, normalizePhone } from "@/lib/config";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -87,8 +87,8 @@ const Admin = () => {
       consultationType: app.type,
       insuranceName: app.insurance_name
     });
-    const phone = app.patients.phone.replace(/\D/g, '');
-    return `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    const phone = normalizePhone(app.patients.phone);
+    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
   };
 
   const handleExportPDF = () => {
@@ -250,7 +250,7 @@ const Admin = () => {
                         )}
                         
                         <a 
-                          href={`https://wa.me/55${app.patients.phone.replace(/\D/g, '')}`}
+                          href={`https://api.whatsapp.com/send?phone=${normalizePhone(app.patients.phone)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-9 px-3 hover:bg-accent hover:text-accent-foreground gap-1"
