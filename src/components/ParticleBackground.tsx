@@ -12,10 +12,10 @@ interface Particle {
 }
 
 const COLORS = [
-  "rgba(2, 170, 220,",   // primary blue
-  "rgba(56, 189, 150,",  // accent green
-  "rgba(100, 210, 255,", // light blue
-  "rgba(180, 240, 220,", // light teal
+  "rgba(10, 80, 180,",   // deep navy blue
+  "rgba(20, 100, 200,",  // rich blue
+  "rgba(30, 120, 210,",  // medium-dark blue
+  "rgba(15, 60, 160,",   // indigo-blue
 ];
 
 const ParticleBackground = () => {
@@ -47,7 +47,7 @@ const ParticleBackground = () => {
       vx: (Math.random() - 0.5) * 0.4,
       vy: (Math.random() - 0.5) * 0.4,
       radius: Math.random() * 2.2 + 0.5,
-      alpha: Math.random() * 0.5 + 0.15,
+      alpha: Math.random() * 0.55 + 0.3,
       alphaDir: (Math.random() - 0.5) * 0.004,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     });
@@ -67,11 +67,11 @@ const ParticleBackground = () => {
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < maxDist) {
-            const opacity = (1 - dist / maxDist) * 0.12;
+            const opacity = (1 - dist / maxDist) * 0.22;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(2, 170, 220, ${opacity})`;
+            ctx.strokeStyle = `rgba(15, 80, 190, ${opacity})`;
             ctx.lineWidth = 0.6;
             ctx.stroke();
           }
@@ -85,7 +85,7 @@ const ParticleBackground = () => {
         p.y += p.vy;
         p.alpha += p.alphaDir;
 
-        if (p.alpha <= 0.08 || p.alpha >= 0.65) p.alphaDir *= -1;
+        if (p.alpha <= 0.2 || p.alpha >= 0.85) p.alphaDir *= -1;
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
       });
