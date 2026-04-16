@@ -3,13 +3,13 @@ import { CLINIC_CONFIG } from "@/lib/config";
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
+    <header className="glass-header sticky top-0 z-50">
       <div className="container mx-auto flex items-center gap-3 px-4 py-3">
         <div className="relative h-12 w-12 shrink-0 flex items-center justify-center">
-          <img 
-            src={logoOficial} 
-            alt="Logo Dra. Fátima Casal" 
-            className="h-full w-full object-contain" 
+          <img
+            src={logoOficial}
+            alt="Logo Dra. Fátima Casal"
+            className="h-full w-full object-contain drop-shadow-sm"
           />
         </div>
         <div>
