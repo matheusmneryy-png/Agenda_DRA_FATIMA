@@ -11,11 +11,12 @@ interface Particle {
   color: string;
 }
 
+// Primary button color: hsl(199 89% 48%) ≈ rgb(2,150,210) — use darkened variants
 const COLORS = [
-  "rgba(10, 80, 180,",   // deep navy blue
-  "rgba(20, 100, 200,",  // rich blue
-  "rgba(30, 120, 210,",  // medium-dark blue
-  "rgba(15, 60, 160,",   // indigo-blue
+  "rgba(2, 120, 180,",   // primary button dark
+  "rgba(0, 100, 160,",   // deeper blue
+  "rgba(5, 135, 195,",   // near-primary
+  "rgba(0, 80, 145,",    // navy-primary
 ];
 
 const ParticleBackground = () => {
@@ -37,7 +38,7 @@ const ParticleBackground = () => {
     };
 
     const initParticles = () => {
-      const count = Math.floor((canvas.width * canvas.height) / 18000);
+      const count = Math.floor((canvas.width * canvas.height) / 5500);
       particles = Array.from({ length: count }, () => createParticle());
     };
 
@@ -46,8 +47,8 @@ const ParticleBackground = () => {
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.4,
       vy: (Math.random() - 0.5) * 0.4,
-      radius: Math.random() * 2.2 + 0.5,
-      alpha: Math.random() * 0.55 + 0.3,
+      radius: Math.random() * 2.8 + 0.8,
+      alpha: Math.random() * 0.5 + 0.45,
       alphaDir: (Math.random() - 0.5) * 0.004,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     });
@@ -67,11 +68,11 @@ const ParticleBackground = () => {
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < maxDist) {
-            const opacity = (1 - dist / maxDist) * 0.22;
+            const opacity = (1 - dist / maxDist) * 0.28;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(15, 80, 190, ${opacity})`;
+            ctx.strokeStyle = `rgba(0, 100, 160, ${opacity})`;
             ctx.lineWidth = 0.6;
             ctx.stroke();
           }
@@ -85,7 +86,7 @@ const ParticleBackground = () => {
         p.y += p.vy;
         p.alpha += p.alphaDir;
 
-        if (p.alpha <= 0.2 || p.alpha >= 0.85) p.alphaDir *= -1;
+        if (p.alpha <= 0.3 || p.alpha >= 0.95) p.alphaDir *= -1;
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
       });
